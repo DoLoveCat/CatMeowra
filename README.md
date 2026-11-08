@@ -44,10 +44,10 @@ Activate the virtual environment:
 source .venv/bin/activate
 ```
 
-Install dependencies:
+Install CatMeowra and its dependencies in editable mode:
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 Create a personal configuration file:
@@ -65,7 +65,7 @@ cp config.example.json config.json
 Review `config.json`, connect the camera, then start CatMeowra:
 
 ```bash
-python app.py --config config.json
+python -m catmeowra --config config.json
 ```
 
 Open <http://localhost:8000>.

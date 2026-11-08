@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catmeowra"
+version = "0.1.0"
+description = "A local-first USB camera monitor with cat detection and rolling HLS playback"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-only"
+authors = [{ name = "Rose" }]
+dependencies = [
+  "opencv-python>=4.8,<5",
+  "imageio-ffmpeg>=0.6,<1",
+  "ultralytics>=8.3,<9",
+]
+
+[project.urls]
+Homepage = "https://github.com/DoLoveCat/CatMeowra"
+Repository = "https://github.com/DoLoveCat/CatMeowra"
+Issues = "https://github.com/DoLoveCat/CatMeowra/issues"
+
+[project.scripts]
+catmeowra = "catmeowra.app:main"
+
+[tool.setuptools]
+packages = ["catmeowra"]
+
+[tool.setuptools.package-data]
+catmeowra = ["static/**/*"]

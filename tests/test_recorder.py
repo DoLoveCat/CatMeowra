@@ -4,7 +4,7 @@ import time
 import unittest
 from pathlib import Path
 
-from recorder import Recorder, Settings
+from catmeowra.recorder import Recorder, Settings
 
 
 class RecorderTimelineTests(unittest.TestCase):

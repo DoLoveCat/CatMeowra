@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from config import load_config
+from catmeowra.config import load_config
 
 
 class ConfigTests(unittest.TestCase):

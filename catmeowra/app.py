@@ -13,15 +13,17 @@ from urllib.parse import parse_qs, urlparse
 
 import cv2
 
-from config import load_config, resolve_project_path
-from detector import CatDetector
-from recorder import Recorder, Settings
+from .config import load_config, resolve_project_path
+from .detector import CatDetector
+from .recorder import Recorder, Settings
 
 
-APP_DIR = Path(__file__).resolve().parent
-INDEX_HTML = (APP_DIR / "index.html").read_bytes()
-HLS_JS = (APP_DIR / "hls.min.js").read_bytes()
-I18N_JS = (APP_DIR / "i18n.js").read_bytes()
+PACKAGE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = PACKAGE_DIR.parent
+STATIC_DIR = PACKAGE_DIR / "static"
+INDEX_HTML = (STATIC_DIR / "index.html").read_bytes()
+HLS_JS = (STATIC_DIR / "vendor" / "hls.min.js").read_bytes()
+I18N_JS = (STATIC_DIR / "i18n.js").read_bytes()
 
 
 class Camera:
@@ -316,7 +318,7 @@ class CameraHandler(BaseHTTPRequestHandler):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CatMeowra local camera server")
-    parser.add_argument("--config", type=Path, default=APP_DIR / "config.json")
+    parser.add_argument("--config", type=Path, default=PROJECT_DIR / "config.json")
     return parser.parse_args()
 
 
@@ -328,8 +330,8 @@ def main() -> None:
     recording_config = config["recording"]
     detection_config = config["detection"]
 
-    settings = Settings(APP_DIR / "settings.json", int(recording_config["retention_days"]))
-    storage = resolve_project_path(APP_DIR, str(recording_config["storage_directory"]))
+    settings = Settings(PROJECT_DIR / "settings.json", int(recording_config["retention_days"]))
+    storage = resolve_project_path(PROJECT_DIR, str(recording_config["storage_directory"]))
     recorder = Recorder(
         storage,
         settings,
@@ -338,8 +340,8 @@ def main() -> None:
         int(recording_config["segment_seconds"]),
     )
     detector = CatDetector(
-        resolve_project_path(APP_DIR, str(detection_config["model"])),
-        APP_DIR / "cat_emoji.png",
+        resolve_project_path(PROJECT_DIR, str(detection_config["model"])),
+        STATIC_DIR / "images" / "cat_emoji.png",
         float(detection_config["confidence"]),
         float(detection_config["interval_seconds"]),
         int(detection_config["image_size"]),

@@ -19,7 +19,7 @@ test-hls/
 *.jpg
 *.jpeg
 *.png
-!cat_emoji.png
+!catmeowra/static/images/cat_emoji.png
 
 # Downloaded model weights
 *.pt
