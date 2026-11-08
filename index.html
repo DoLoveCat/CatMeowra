@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CatMeowra</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #090b10; color: #f3f5f8; }
+    main { width: min(100% - 28px, 1180px); margin: auto; padding: 24px 0 60px; }
+    header, .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 4px; font-size: clamp(1.6rem, 4vw, 2.5rem); }
+    h2 { font-size: 1.1rem; }
+    .muted { color: #929bad; }
+    .statuses { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .status { padding: 7px 11px; border: 1px solid #263349; border-radius: 999px; color: #7ee787; background: #122018; white-space: nowrap; }
+    .status.cat-away { color: #aab2c0; background: #171b23; }
+    .status.cat-home { color: #7ee787; background: #122b1b; border-color: #2c6f3b; }
+    .grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; }
+    .card { border: 1px solid #242a35; border-radius: 16px; background: #11151d; box-shadow: 0 18px 50px #0007; overflow: hidden; }
+    .camera-column { min-width: 0; }
+    .stage { position: relative; height: min(75vh, 780px); overflow: hidden; background: #05070a; }
+    #feed { position: absolute; left: 50%; top: 50%; display: block; max-width: none; max-height: none; transform-origin: center; }
+    .viewer-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .panel { padding: 18px; }
+    label { display: block; margin-bottom: 7px; color: #b8c0ce; font-size: .9rem; }
+    input { width: 100%; border: 1px solid #343c4a; border-radius: 9px; padding: 10px 11px; background: #0b0e14; color: inherit; font: inherit; }
+    button, .button { border: 1px solid #343c4a; border-radius: 9px; background: #202734; color: inherit; padding: 10px 13px; font: inherit; text-decoration: none; cursor: pointer; }
+    button:hover, .button:hover { background: #2a3444; }
+    button.primary { width: 100%; margin-top: 9px; background: #235bd8; border-color: #3671ef; }
+    .facts { display: grid; grid-template-columns: 1fr auto; gap: 9px; font-size: .9rem; margin: 18px 0; }
+    .facts span:nth-child(even) { color: #c6cfdd; text-align: right; }
+    .recordings { margin-top: 16px; }
+    #player { width: 100%; max-height: 70vh; background: #000; border-radius: 12px; }
+    .range-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 12px; }
+    .quick-ranges { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+    .timeline { margin-top: 12px; padding: 12px; border-radius: 12px; background: #0b0e14; border: 1px solid #272e3a; }
+    #scrubber { width: 100%; accent-color: #38d35f; }
+    .timeline-labels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; color: #929bad; font-size: .82rem; }
+    .timeline-labels span:nth-child(2) { color: #7ee787; text-align: center; }
+    .timeline-labels span:last-child { text-align: right; }
+    details { margin-top: 14px; }
+    summary { cursor: pointer; color: #aeb7c6; }
+    #recordingList { display: grid; gap: 8px; margin-top: 12px; }
+    .clip { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; width: 100%; text-align: left; }
+    .clip small { display: block; color: #929bad; margin-top: 3px; }
+    .empty { padding: 18px; border: 1px dashed #343c4a; border-radius: 10px; color: #929bad; }
+    #message { min-height: 22px; color: #7ee787; margin-top: 9px; font-size: .88rem; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .stage { height: 65vh; } header { align-items: flex-start; } .range-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>CatMeowra</h1><div class="muted" data-i18n="subtitle">Live view and rolling recordings</div></div>
+      <div class="statuses">
+        <span id="catStatus" class="status cat-away" data-i18n="detectorStarting">🐱 Starting detection</span>
+        <span id="status" class="status" data-i18n="connecting">● Connecting</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="camera-column">
+        <div id="stage" class="card stage"><img id="feed" src="/video_feed" alt="Live camera view"></div>
+        <div class="viewer-controls">
+          <button id="rotateLeft" data-i18n="rotateLeft">↶ Rotate left</button>
+          <button id="rotateRight" data-i18n="rotateRight">↷ Rotate right</button>
+          <button id="rotateReset" data-i18n="resetRotation">Reset rotation</button>
+        </div>
+      </div>
+      <aside class="card panel">
+        <h2 data-i18n="storage">Recording storage</h2>
+        <label for="retention" data-i18n="retentionLabel">Retention days (1–365)</label>
+        <input id="retention" type="number" min="1" max="365" value="5">
+        <button id="saveSettings" class="primary" data-i18n="saveRetention">Save retention period</button>
+        <div id="message"></div>
+        <div class="facts">
+          <span class="muted" data-i18n="recordingStatus">Recording status</span><span id="recordingState">—</span>
+          <span class="muted" data-i18n="catDetection">Cat detection</span><span id="detectorState">—</span>
+          <span class="muted" data-i18n="recordingProfile">Recording profile</span><span id="recordingSpec">—</span>
+          <span class="muted" data-i18n="segmentLength">Segment length</span><span id="segmentLength">—</span>
+          <span class="muted" data-i18n="recentRecordings">Recent recordings</span><span id="clipCount">—</span>
+        </div>
+        <a class="button" href="/snapshot.jpg" download="catmeowra-snapshot.jpg" data-i18n="saveSnapshot">Save current snapshot</a>
+      </aside>
+    </section>
+
+    <section class="recordings card panel">
+      <div class="row"><h2 data-i18n="timelinePlayback">Timeline playback</h2><span id="rangeMessage" class="muted" data-i18n="loadingTimeline">Loading recording timeline…</span></div>
+      <div class="quick-ranges">
+        <button data-hours="1" data-i18n="lastHour">Last hour</button>
+        <button data-hours="6" data-i18n="last6Hours">Last 6 hours</button>
+        <button data-hours="24" data-i18n="last24Hours">Last 24 hours</button>
+        <button id="allToday" data-i18n="today">Today</button>
+      </div>
+      <div class="range-grid">
+        <div><label for="rangeStart" data-i18n="startTime">Start time</label><input id="rangeStart" type="datetime-local" step="1"></div>
+        <div><label for="rangeEnd" data-i18n="endTime">End time</label><input id="rangeEnd" type="datetime-local" step="1"></div>
+        <button id="playRange" class="primary" data-i18n="playRange">Play selected range</button>
+      </div>
+      <video id="player" controls playsinline></video>
+      <div class="timeline">
+        <input id="scrubber" type="range" min="0" max="0" value="0" step="0.1" aria-label="Recording timeline" data-i18n-aria="timelineAria">
+        <div class="timeline-labels"><span id="timelineStart">—</span><span id="timelineCurrent">—</span><span id="timelineEnd">—</span></div>
+      </div>
+      <details>
+        <summary data-i18n="legacyRecordings">Legacy MP4 recordings</summary>
+        <div id="recordingList"><div class="empty" data-i18n="noLegacy">No legacy recordings.</div></div>
+      </details>
+    </section>
+  </main>
+
+  <script src="/i18n.js"></script>
+  <script src="/hls.min.js"></script>
+  <script>
+    const { t, apply: applyTranslations } = window.CatMeowraI18n;
+    applyTranslations();
+    const $ = selector => document.querySelector(selector);
+    const status = $('#status');
+    const catStatus = $('#catStatus');
+    const player = $('#player');
+    const scrubber = $('#scrubber');
+    let hls = null;
+    let selectedStart = 0;
+    let selectedEnd = 0;
+    let timelineInfo = null;
+    const feed = $('#feed');
+    const stage = $('#stage');
+    let rotation = Number(localStorage.getItem('happyCameraRotation') || 0);
+    if (!Number.isFinite(rotation) || rotation % 90 !== 0) rotation = 0;
+
+    function fitFeed() {
+      if (!feed.naturalWidth || !feed.naturalHeight) return;
+      const sideways = Math.abs(rotation / 90) % 2 === 1;
+      const visualWidth = sideways ? feed.naturalHeight : feed.naturalWidth;
+      const visualHeight = sideways ? feed.naturalWidth : feed.naturalHeight;
+      const scale = Math.min(stage.clientWidth / visualWidth, stage.clientHeight / visualHeight);
+      feed.style.width = `${feed.naturalWidth}px`;
+      feed.style.height = `${feed.naturalHeight}px`;
+      feed.style.transform = `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`;
+    }
+
+    function setRotation(value) {
+      rotation = ((value % 360) + 360) % 360;
+      localStorage.setItem('happyCameraRotation', String(rotation));
+      fitFeed();
+    }
+    $('#rotateLeft').onclick = () => setRotation(rotation - 90);
+    $('#rotateRight').onclick = () => setRotation(rotation + 90);
+    $('#rotateReset').onclick = () => setRotation(0);
+    feed.onload = fitFeed;
+    window.addEventListener('resize', fitFeed);
+    new ResizeObserver(fitFeed).observe(stage);
+
+    async function loadStatus() {
+      try {
+        const data = await fetch('/api/status', { cache: 'no-store' }).then(r => r.json());
+        status.textContent = data.camera ? t('online') : t('offline');
+        status.style.color = data.camera ? '#7ee787' : '#ff7b72';
+        if (!data.detector_ready) {
+          catStatus.textContent = data.detector_error ? t('detectorError') : t('detectorStarting');
+          catStatus.className = 'status cat-away';
+        } else if (data.cat_present) {
+          catStatus.textContent = t('catPresent', { confidence: Math.round(data.cat_confidence * 100) });
+          catStatus.className = 'status cat-home';
+        } else {
+          catStatus.textContent = t('catAbsent');
+          catStatus.className = 'status cat-away';
+        }
+        $('#recordingState').textContent = data.recording ? t('recording') : (data.error || t('preparing'));
+        $('#detectorState').textContent = data.detector_ready ? `${data.detector_inference_ms || '—'} ms` : (data.detector_error || t('loading'));
+        $('#recordingSpec').textContent = `${data.fps} FPS / ${data.bitrate_kbps} kbps`;
+        $('#segmentLength').textContent = t('seconds', { value: data.segment_seconds });
+        $('#retention').value = data.retention_days;
+      } catch { status.textContent = t('serviceOffline'); status.style.color = '#ff7b72'; }
+    }
+
+    async function loadRecordings() {
+      const list = $('#recordingList');
+      try {
+        const data = await fetch('/api/recordings', { cache: 'no-store' }).then(r => r.json());
+        $('#clipCount').textContent = t('clips', { value: data.recordings.length });
+        if (!data.recordings.length) {
+          list.innerHTML = `<div class="empty">${t('noLegacy')}</div>`;
+          return;
+        }
+        list.replaceChildren(...data.recordings.map(clip => {
+          const button = document.createElement('button');
+          button.className = 'clip';
+          const date = new Date(clip.created_at);
+          button.innerHTML = `<span>${date.toLocaleString()}<small>${clip.name}</small></span><span>${clip.size_mb} MB</span>`;
+          button.onclick = () => { if (hls) { hls.destroy(); hls = null; } player.src = clip.url; player.play(); player.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+          return button;
+        }));
+      } catch { list.innerHTML = `<div class="empty">${t('legacyLoadFailed')}</div>`; }
+    }
+
+    const toLocalInput = date => {
+      const offset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - offset).toISOString().slice(0, 19);
+    };
+    const formatClock = seconds => new Date(seconds * 1000).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    async function loadTimeline() {
+      timelineInfo = await fetch('/api/timeline', { cache: 'no-store' }).then(r => r.json());
+      $('#clipCount').textContent = timelineInfo.available ? t('clips', { value: timelineInfo.count }) : t('waitingFirst');
+      if (!timelineInfo.available) {
+        $('#rangeMessage').textContent = t('firstSegmentPending');
+        return;
+      }
+      const latest = new Date(timelineInfo.end);
+      const earliest = new Date(timelineInfo.start);
+      if (!$('#rangeStart').value) $('#rangeStart').value = toLocalInput(new Date(Math.max(earliest, latest - 3600000)));
+      if (!$('#rangeEnd').value) $('#rangeEnd').value = toLocalInput(latest);
+      $('#rangeMessage').textContent = t('timelineReady', { count: timelineInfo.count });
+    }
+
+    function setQuickRange(hours) {
+      if (!timelineInfo?.available) return;
+      const earliest = new Date(timelineInfo.start).getTime();
+      const end = new Date(timelineInfo.end).getTime();
+      $('#rangeStart').value = toLocalInput(new Date(Math.max(earliest, end - hours * 3600000)));
+      $('#rangeEnd').value = toLocalInput(new Date(end));
+    }
+
+    function playSelectedRange() {
+      selectedStart = new Date($('#rangeStart').value).getTime() / 1000;
+      selectedEnd = new Date($('#rangeEnd').value).getTime() / 1000;
+      if (!selectedStart || !selectedEnd || selectedEnd <= selectedStart) {
+        $('#rangeMessage').textContent = t('invalidRange');
+        return;
+      }
+      const source = `/api/stream.m3u8?start=${selectedStart}&end=${selectedEnd}&t=${Date.now()}`;
+      if (hls) { hls.destroy(); hls = null; }
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ maxBufferLength: 60, backBufferLength: 30 });
+        hls.loadSource(source);
+        hls.attachMedia(player);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => player.play());
+        hls.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal) $('#rangeMessage').textContent = t('playbackFailed', { error: data.details }); });
+      } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+        player.src = source;
+        player.play();
+      } else {
+        $('#rangeMessage').textContent = t('noHls');
+      }
+      $('#timelineStart').textContent = formatClock(selectedStart);
+      $('#timelineEnd').textContent = formatClock(selectedEnd);
+      $('#rangeMessage').textContent = t('loadingRange');
+    }
+
+    player.addEventListener('loadedmetadata', () => {
+      scrubber.max = Number.isFinite(player.duration) ? player.duration : 0;
+      $('#rangeMessage').textContent = t('loadedRange', { seconds: Math.round(player.duration) });
+    });
+    player.addEventListener('timeupdate', () => {
+      if (!scrubber.matches(':active')) scrubber.value = player.currentTime;
+      $('#timelineCurrent').textContent = selectedStart ? formatClock(selectedStart + player.currentTime) : '—';
+    });
+    scrubber.addEventListener('input', () => { player.currentTime = Number(scrubber.value); });
+
+    $('#saveSettings').onclick = async () => {
+      const days = Number($('#retention').value);
+      const response = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ retention_days: days }) });
+      const data = await response.json();
+      $('#message').textContent = data.ok ? t('retentionSaved', { days: data.retention_days }) : t('saveFailed', { error: data.error });
+      setTimeout(() => $('#message').textContent = '', 3500);
+      loadStatus();
+    };
+    document.querySelectorAll('[data-hours]').forEach(button => button.onclick = () => setQuickRange(Number(button.dataset.hours)));
+    $('#allToday').onclick = () => {
+      if (!timelineInfo?.available) return;
+      const end = new Date(timelineInfo.end);
+      const start = new Date(end); start.setHours(0, 0, 0, 0);
+      $('#rangeStart').value = toLocalInput(new Date(Math.max(start.getTime(), new Date(timelineInfo.start).getTime())));
+      $('#rangeEnd').value = toLocalInput(end);
+    };
+    $('#playRange').onclick = playSelectedRange;
+    feed.onerror = () => setTimeout(() => feed.src = `/video_feed?t=${Date.now()}`, 1500);
+
+    loadStatus();
+    loadRecordings();
+    loadTimeline();
+    setInterval(loadStatus, 5000);
+    setInterval(loadRecordings, 30000);
+    setInterval(loadTimeline, 30000);
+  </script>
+</body>
+</html>

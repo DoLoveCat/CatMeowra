@@ -1,0 +1,28 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "camera": {
+    "index": 0,
+    "backend": "auto",
+    "width": 1280,
+    "height": 960,
+    "rotation": "ccw",
+    "jpeg_quality": 85
+  },
+  "recording": {
+    "storage_directory": "storage",
+    "retention_days": 5,
+    "fps": 15,
+    "bitrate_kbps": 2500,
+    "segment_seconds": 10
+  },
+  "detection": {
+    "model": "yolo11n.pt",
+    "confidence": 0.12,
+    "interval_seconds": 0.5,
+    "image_size": 960,
+    "inference_rotation": "ccw"
+  }
+}
